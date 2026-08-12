@@ -41,6 +41,18 @@ export default function App() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const requireSignIn = () => {
+    if (user) return true;
+    setIsAuthModalOpen(true);
+    return false;
+  };
+
+  const openNewSong = () => {
+    if (!requireSignIn()) return;
+    setActiveSong(null);
+    setActiveView('editor');
+  };
+
   // Load user session and songs on mount
   useEffect(() => {
     async function initApp() {
@@ -89,6 +101,7 @@ export default function App() {
 
   // CRUD Handlers
   const handleSaveSong = async (songData: Partial<Song>) => {
+    if (!requireSignIn()) return;
     const saved = await upsertSong(songData, user?.id);
     setSongs((prev) => {
       const idx = prev.findIndex((s) => s.id === saved.id);
@@ -104,12 +117,14 @@ export default function App() {
   };
 
   const handleDeleteSong = async (id: string) => {
+    if (!requireSignIn()) return;
     await removeSong(id, user?.id);
     setSongs((prev) => prev.filter((s) => s.id !== id));
     if (activeSong?.id === id) setActiveSong(null);
   };
 
   const handleToggleFavorite = async (id: string, currentFavorite: boolean) => {
+    if (!requireSignIn()) return;
     const target = songs.find((s) => s.id === id);
     if (!target) return;
     const updated = { ...target, favorite: !currentFavorite };
@@ -118,6 +133,7 @@ export default function App() {
   };
 
   const handleTogglePin = async (id: string, currentPinned: boolean) => {
+    if (!requireSignIn()) return;
     const target = songs.find((s) => s.id === id);
     if (!target) return;
     const updated = { ...target, pinned: !currentPinned };
@@ -126,6 +142,7 @@ export default function App() {
   };
 
   const handleDuplicate = async (song: Song) => {
+    if (!requireSignIn()) return;
     const duplicatedData: Partial<Song> = {
       title: `${song.title} (Copy)`,
       artist: song.artist,
@@ -142,6 +159,7 @@ export default function App() {
   };
 
   const handleImportTxt = async (title: string, content: string, artist?: string, key?: string, bpm?: number) => {
+    if (!requireSignIn()) return;
     const importedData: Partial<Song> = {
       title,
       artist,
@@ -156,6 +174,7 @@ export default function App() {
   };
 
   const handleBatchImportSongs = async (importedList: Partial<Song>[]) => {
+    if (!requireSignIn()) return;
     const created: Song[] = [];
     for (const item of importedList) {
       if (item.title && item.content) {
@@ -172,6 +191,7 @@ export default function App() {
     songData: Partial<Song>,
     openMode: 'library' | 'reader' | 'editor' = 'library'
   ) => {
+    if (!requireSignIn()) return;
     const importedData: Partial<Song> = {
       title: songData.title || 'Untitled Song',
       artist: songData.artist || '',
@@ -196,8 +216,10 @@ export default function App() {
   };
 
   const handleLoadSamples = async () => {
+    if (!requireSignIn()) return;
     for (const sample of INITIAL_SONGS) {
-      await upsertSong(sample, user?.id);
+      const { id: _sampleId, user_id: _sampleUserId, ...sampleData } = sample;
+      await upsertSong(sampleData, user?.id);
     }
     const { songs: reloaded } = await fetchUserSongs(user?.id);
     setSongs(reloaded);
@@ -209,7 +231,7 @@ export default function App() {
 
     // Update last_viewed_at timestamp
     const updated = { ...song, last_viewed_at: new Date().toISOString() };
-    upsertSong(updated, user?.id);
+    if (user) upsertSong(updated, user.id).catch(console.warn);
   };
 
   const handleLogout = async () => {
@@ -218,6 +240,8 @@ export default function App() {
       await supabase.auth.signOut();
     }
     setUser(null);
+    setActiveSong(null);
+    setActiveView('library');
   };
 
   const handleOpenChordModal = (chordName: string = 'C') => {
@@ -227,6 +251,10 @@ export default function App() {
 
   // Process files selected via hidden input triggered from Sidebar
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!requireSignIn()) {
+      e.target.value = '';
+      return;
+    }
     if (!e.target.files || e.target.files.length === 0) return;
     const fileArray = Array.from(e.target.files) as File[];
     const allParsedSongs: Partial<Song>[] = [];
@@ -291,15 +319,16 @@ export default function App() {
             setActiveView={setActiveView}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
-            onNewSong={() => {
-              setActiveSong(null);
-              setActiveView('editor');
-            }}
+            onNewSong={openNewSong}
             onOpenChordRef={() => handleOpenChordModal('C')}
             onOpenAuthModal={() => setIsAuthModalOpen(true)}
             onOpenSqlModal={() => setIsSqlModalOpen(true)}
-            onOpenImportUrlModal={() => setIsImportUrlModalOpen(true)}
-            onTriggerFileUpload={() => fileInputRef.current?.click()}
+            onOpenImportUrlModal={() => {
+              if (requireSignIn()) setIsImportUrlModalOpen(true);
+            }}
+            onTriggerFileUpload={() => {
+              if (requireSignIn()) fileInputRef.current?.click();
+            }}
             onExportBackup={() => downloadLibraryBackupTxt(songs)}
             onLoadSamples={handleLoadSamples}
             user={user}
@@ -314,10 +343,7 @@ export default function App() {
               setActiveView={setActiveView}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
-              onNewSong={() => {
-                setActiveSong(null);
-                setActiveView('editor');
-              }}
+              onNewSong={openNewSong}
               onOpenAuthModal={() => setIsAuthModalOpen(true)}
               onOpenSqlModal={() => setIsSqlModalOpen(true)}
               onOpenChordRef={() => handleOpenChordModal('C')}
@@ -365,6 +391,7 @@ export default function App() {
                   setSearchQuery={setSearchQuery}
                   onRead={handleOpenReadMode}
                   onEdit={(song) => {
+                    if (!requireSignIn()) return;
                     setActiveSong(song);
                     setActiveView('editor');
                   }}
@@ -372,10 +399,7 @@ export default function App() {
                   onToggleFavorite={handleToggleFavorite}
                   onTogglePin={handleTogglePin}
                   onDuplicate={handleDuplicate}
-                  onNewSong={() => {
-                    setActiveSong(null);
-                    setActiveView('editor');
-                  }}
+                  onNewSong={openNewSong}
                   onImportTxt={handleImportTxt}
                   onBatchImportSongs={handleBatchImportSongs}
                   onImportUrlSong={handleImportUrlSong}

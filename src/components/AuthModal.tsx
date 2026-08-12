@@ -66,18 +66,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         if (error) throw error;
         if (data.user) {
-          setUser({ id: data.user.id, email: data.user.email || '' });
-          setMessage({
-            type: 'success',
-            text: 'Account created! You are now logged in.',
-          });
-          setTimeout(() => {
-            onClose();
-          }, 800);
+          if (data.session) {
+            setUser({ id: data.user.id, email: data.user.email || '' });
+            setMessage({ type: 'success', text: 'Account created and signed in!' });
+            setTimeout(onClose, 800);
+          } else {
+            setMessage({
+              type: 'success',
+              text: 'Account created. Check your email and click the confirmation link before signing in.',
+            });
+            setTab('login');
+          }
         }
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Authentication failed' });
+      const text = err.message === 'Email not confirmed'
+        ? 'Email not confirmed. Open the verification email from Supabase, click the link, then sign in again.'
+        : err.message || 'Authentication failed';
+      setMessage({ type: 'error', text });
     } finally {
       setLoading(false);
     }
@@ -90,6 +96,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       type: 'success',
       text: 'Supabase credentials saved! Client re-initialized.',
     });
+  };
+
+  const handleResendConfirmation = async () => {
+    const supabase = getSupabase();
+    if (!supabase || !email.trim()) return;
+
+    setLoading(true);
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email.trim(),
+    });
+    setLoading(false);
+    setMessage(error
+      ? { type: 'error', text: error.message }
+      : { type: 'success', text: 'Confirmation email resent. Check your inbox and spam folder.' });
   };
 
   return (
@@ -159,6 +180,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             )}
             <span>{message.text}</span>
           </div>
+        )}
+
+        {message?.type === 'error' && message.text.startsWith('Email not confirmed') && (
+          <button
+            type="button"
+            onClick={handleResendConfirmation}
+            disabled={loading || !email.trim()}
+            className="w-full mb-4 py-2 bg-[#27272a] hover:bg-[#3f3f46] disabled:opacity-50 border border-emerald-500/30 text-emerald-300 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+          >
+            Resend confirmation email
+          </button>
         )}
 
         {(tab === 'login' || tab === 'signup') && (

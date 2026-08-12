@@ -1,10 +1,14 @@
+import "dotenv/config";
 import express from "express";
 import path from "path";
 import { GoogleGenAI, Type } from "@google/genai";
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const configuredPort = Number.parseInt(process.env.PORT ?? "3000", 10);
+  if (!Number.isInteger(configuredPort) || configuredPort < 1 || configuredPort > 65535) {
+    throw new Error(`Invalid PORT value: ${process.env.PORT}`);
+  }
 
   app.use(express.json({ limit: "10mb" }));
 
@@ -175,9 +179,32 @@ Extract the song title, artist/band name, musical key (e.g., C, G, Am), estimate
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`);
-  });
+  const listen = (port: number) => {
+    const server = app.listen(port, "0.0.0.0", () => {
+      console.log(`Server running on http://localhost:${port}`);
+    });
+
+    server.on("error", (error: NodeJS.ErrnoException) => {
+      if (
+        error.code === "EADDRINUSE" &&
+        process.env.NODE_ENV !== "production" &&
+        process.env.PORT === undefined &&
+        port < 65535
+      ) {
+        const nextPort = port + 1;
+        console.warn(`Port ${port} is already in use; trying ${nextPort}...`);
+        server.close(() => listen(nextPort));
+        return;
+      }
+
+      throw error;
+    });
+  };
+
+  listen(configuredPort);
 }
 
-startServer();
+startServer().catch((error) => {
+  console.error("Failed to start server:", error);
+  process.exitCode = 1;
+});

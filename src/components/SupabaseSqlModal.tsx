@@ -19,25 +19,31 @@ create table if not exists public.songs (
   pinned boolean default false,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  last_viewed_at timestamp with time zone
+  last_viewed_at timestamp with time zone,
+  tags text[] default '{}',
+  original_chord_sheet_url text
 );
 
 -- Enable Row Level Security (RLS)
 alter table public.songs enable row level security;
 
 -- Policy: Users can view their own songs
+drop policy if exists "Users can view own songs" on public.songs;
 create policy "Users can view own songs" on public.songs
   for select using (auth.uid() = user_id);
 
 -- Policy: Users can insert their own songs
+drop policy if exists "Users can insert own songs" on public.songs;
 create policy "Users can insert own songs" on public.songs
   for insert with check (auth.uid() = user_id);
 
 -- Policy: Users can update their own songs
+drop policy if exists "Users can update own songs" on public.songs;
 create policy "Users can update own songs" on public.songs
   for update using (auth.uid() = user_id);
 
 -- Policy: Users can delete their own songs
+drop policy if exists "Users can delete own songs" on public.songs;
 create policy "Users can delete own songs" on public.songs
   for delete using (auth.uid() = user_id);
 `;

@@ -5,9 +5,21 @@ import { INITIAL_SONGS } from '../data/initialSongs';
 // Storage keys for custom client config and offline persistent cache
 const SUPABASE_URL_KEY = 'chordflow_supabase_url';
 const SUPABASE_KEY_KEY = 'chordflow_supabase_key';
-const LOCAL_SONGS_KEY = 'chordflow_local_songs_v1';
+const LOCAL_SONGS_KEY = 'chordflow_user_songs_v1';
 
 let supabaseClient: SupabaseClient | null = null;
+
+function normalizeSupabaseUrl(value: string): string {
+  const trimmed = value.trim();
+
+  // Supabase dashboards often expose the project ref separately from the URL.
+  // Accept that shorthand and turn it into the canonical project URL.
+  if (/^[a-z0-9]{20}$/.test(trimmed)) {
+    return `https://${trimmed}.supabase.co`;
+  }
+
+  return trimmed;
+}
 
 export function getSupabaseConfig(): { url: string; anonKey: string } {
   const envUrl = import.meta.env.VITE_SUPABASE_URL || '';
@@ -17,15 +29,15 @@ export function getSupabaseConfig(): { url: string; anonKey: string } {
   const storedKey = typeof window !== 'undefined' ? localStorage.getItem(SUPABASE_KEY_KEY) || '' : '';
 
   return {
-    url: envUrl || storedUrl,
-    anonKey: envKey || storedKey,
+    url: normalizeSupabaseUrl(envUrl || storedUrl),
+    anonKey: (envKey || storedKey).trim(),
   };
 }
 
 export function saveCustomSupabaseConfig(url: string, anonKey: string) {
   if (typeof window !== 'undefined') {
-    localStorage.setItem(SUPABASE_URL_KEY, url);
-    localStorage.setItem(SUPABASE_KEY_KEY, anonKey);
+    localStorage.setItem(SUPABASE_URL_KEY, normalizeSupabaseUrl(url));
+    localStorage.setItem(SUPABASE_KEY_KEY, anonKey.trim());
   }
   supabaseClient = null; // reset client to re-initialize
 }
@@ -64,38 +76,51 @@ export function isSupabaseConnected(): boolean {
 
 // ================= LOCAL STORAGE FALLBACK HELPERS ================= //
 
-function getLocalSongs(): Song[] {
-  if (typeof window === 'undefined') return INITIAL_SONGS;
-  const data = localStorage.getItem(LOCAL_SONGS_KEY);
-  if (!data) {
-    localStorage.setItem(LOCAL_SONGS_KEY, JSON.stringify(INITIAL_SONGS));
-    return INITIAL_SONGS;
-  }
+function getLocalSongs(userId: string): Song[] {
+  if (typeof window === 'undefined') return [];
+  const data = localStorage.getItem(`${LOCAL_SONGS_KEY}:${userId}`);
+  if (!data) return [];
   try {
-    return JSON.parse(data);
+    const songs = JSON.parse(data);
+    return Array.isArray(songs) ? songs : [];
   } catch {
-    return INITIAL_SONGS;
+    return [];
   }
 }
 
-function saveLocalSongs(songs: Song[]) {
+function saveLocalSongs(userId: string, songs: Song[]) {
   if (typeof window !== 'undefined') {
-    localStorage.setItem(LOCAL_SONGS_KEY, JSON.stringify(songs));
+    localStorage.setItem(`${LOCAL_SONGS_KEY}:${userId}`, JSON.stringify(songs));
   }
+}
+
+function upsertLocalSong(userId: string, song: Song) {
+  const current = getLocalSongs(userId);
+  const index = current.findIndex((item) => item.id === song.id);
+  const updated = [...current];
+  if (index >= 0) updated[index] = song;
+  else updated.unshift(song);
+  saveLocalSongs(userId, updated);
 }
 
 // ================= CRUD FUNCTIONS (SUPABASE WITH LOCAL FALLBACK) ================= //
 
 export async function fetchUserSongs(userId?: string): Promise<{ songs: Song[]; isRemote: boolean }> {
+  // Guests can browse the sample library, but only authenticated users have a
+  // personal persisted library.
+  if (!userId) {
+    return { songs: INITIAL_SONGS, isRemote: false };
+  }
+
   const supabase = getSupabase();
 
   if (supabase) {
     try {
-      let query = supabase.from('songs').select('*').order('created_at', { ascending: false });
-      
-      if (userId) {
-        query = query.eq('user_id', userId);
-      }
+      const query = supabase
+        .from('songs')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
 
       const { data, error } = await query;
 
@@ -117,7 +142,13 @@ export async function fetchUserSongs(userId?: string): Promise<{ songs: Song[]; 
           tags: Array.isArray(item.tags) ? item.tags : (typeof item.tags === 'string' ? JSON.parse(item.tags) : []),
           original_chord_sheet_url: item.original_chord_sheet_url || undefined,
         }));
-        return { songs: mappedSongs, isRemote: true };
+        // Keep locally queued songs visible until they are next saved remotely.
+        const localSongs = getLocalSongs(userId);
+        const remoteIds = new Set(mappedSongs.map((song) => song.id));
+        return {
+          songs: [...mappedSongs, ...localSongs.filter((song) => !remoteIds.has(song.id))],
+          isRemote: true,
+        };
       } else if (error) {
         console.warn('Supabase fetch query error (falling back to local):', error.message);
       }
@@ -126,17 +157,21 @@ export async function fetchUserSongs(userId?: string): Promise<{ songs: Song[]; 
     }
   }
 
-  // Fallback to local storage
-  return { songs: getLocalSongs(), isRemote: false };
+  // This cache is scoped by user ID, so accounts never share offline songs.
+  return { songs: getLocalSongs(userId), isRemote: false };
 }
 
 export async function upsertSong(songData: Partial<Song>, userId?: string): Promise<Song> {
+  if (!userId) {
+    throw new Error('Please sign in before saving songs.');
+  }
+
   const supabase = getSupabase();
   const now = new Date().toISOString();
 
   const songToSave: Song = {
-    id: songData.id || `song-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    user_id: userId || songData.user_id || 'demo-user',
+    id: songData.id || crypto.randomUUID(),
+    user_id: userId,
     title: songData.title?.trim() || 'Untitled Song',
     artist: songData.artist?.trim() || '',
     key: songData.key?.trim() || '',
@@ -168,17 +203,17 @@ export async function upsertSong(songData: Partial<Song>, userId?: string): Prom
         original_chord_sheet_url: songToSave.original_chord_sheet_url,
       };
 
-      if (userId) {
-        payload.user_id = userId;
-      }
+      payload.user_id = userId;
 
       const { data, error } = await supabase.from('songs').upsert(payload).select().single();
 
       if (!error && data) {
-        return {
+        const savedSong = {
           ...songToSave,
           id: data.id,
         };
+        upsertLocalSong(userId, savedSong);
+        return savedSong;
       } else if (error) {
         console.warn('Supabase upsert error (saving locally):', error.message);
       }
@@ -187,23 +222,15 @@ export async function upsertSong(songData: Partial<Song>, userId?: string): Prom
     }
   }
 
-  // Local storage save
-  const current = getLocalSongs();
-  const existingIdx = current.findIndex(s => s.id === songToSave.id);
-  let updatedList: Song[];
-
-  if (existingIdx >= 0) {
-    updatedList = [...current];
-    updatedList[existingIdx] = songToSave;
-  } else {
-    updatedList = [songToSave, ...current];
-  }
-
-  saveLocalSongs(updatedList);
+  // Preserve the user's work when cloud storage is unavailable. The cache is
+  // private to this signed-in account on this browser.
+  upsertLocalSong(userId, songToSave);
   return songToSave;
 }
 
 export async function removeSong(id: string, userId?: string): Promise<boolean> {
+  if (!userId) return false;
+
   const supabase = getSupabase();
 
   if (supabase) {
@@ -219,9 +246,7 @@ export async function removeSong(id: string, userId?: string): Promise<boolean> 
     }
   }
 
-  // Always sync local storage
-  const current = getLocalSongs();
-  const filtered = current.filter(s => s.id !== id);
-  saveLocalSongs(filtered);
+  saveLocalSongs(userId, getLocalSongs(userId).filter((song) => song.id !== id));
+
   return true;
 }
