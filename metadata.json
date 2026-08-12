@@ -1,0 +1,6 @@
+{
+  "name": "ChordFlow",
+  "description": "Personal guitar chord and lyrics library with smooth adjustable auto-scroll for hands-free reading while playing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

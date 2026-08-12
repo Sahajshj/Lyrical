@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: #121212;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(29, 185, 84, 0.12) 0px, transparent 45%),
+      radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 45%),
+      radial-gradient(at 50% 50%, rgba(18, 18, 18, 0.8) 0px, transparent 100%);
+    background-attachment: fixed;
+    color: #f8fafc;
+    min-height: 100vh;
+  }
+}
+
+/* Custom Spotify Emerald scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #121212;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #282828;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #1db954;
+}
+
+
+
+
