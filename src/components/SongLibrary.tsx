@@ -288,7 +288,7 @@ export const SongLibrary: React.FC<SongLibraryProps> = ({
       onDrop={handleDrop}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      className={`max-w-7xl mx-auto px-3 py-3 sm:px-6 text-white space-y-3 relative transition-all ${
+      className={`max-w-7xl mx-auto px-4 py-5 sm:px-8 text-white space-y-5 relative transition-all ${
         isDragging ? 'ring-4 ring-sky-500 bg-sky-500/10 rounded-2xl' : ''
       }`}
     >
@@ -310,7 +310,7 @@ export const SongLibrary: React.FC<SongLibraryProps> = ({
       )}
 
       {/* CONCISE HIGH-EFFICIENCY SEARCH TOOLBAR */}
-      <div className="w-full bg-[#181818]/90 border border-emerald-500/30 rounded-2xl p-2 sm:p-2.5 shadow-[0_4px_25px_rgba(16,185,129,0.12)] backdrop-blur-xl flex flex-col md:flex-row items-center gap-2">
+      <div className="w-full bg-[#101728]/80 border border-white/[0.08] rounded-2xl p-2.5 sm:p-3 backdrop-blur-xl flex flex-col md:flex-row items-center gap-2.5">
         {/* Search Input */}
         <div className="relative w-full flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400" />
@@ -319,7 +319,7 @@ export const SongLibrary: React.FC<SongLibraryProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search songs, artists, lyrics, or tags (#pop)..."
-            className="w-full bg-[#121212] border border-emerald-500/30 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 rounded-xl pl-9 pr-16 py-2 text-xs sm:text-sm text-white placeholder-emerald-200/35 outline-none font-sans transition-all"
+            className="w-full bg-[#080d19] border border-white/[0.09] focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/15 rounded-xl pl-9 pr-16 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 outline-none font-sans transition-all"
           />
           {searchQuery ? (
             <button
@@ -505,7 +505,7 @@ export const SongLibrary: React.FC<SongLibraryProps> = ({
             className={
               isCompactList
                 ? 'space-y-2'
-                : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5'
+                : 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4'
             }
           >
             {pinnedSongs.map((song) => (
@@ -538,7 +538,7 @@ export const SongLibrary: React.FC<SongLibraryProps> = ({
             className={
               isCompactList
                 ? 'space-y-2'
-                : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5'
+                : 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4'
             }
           >
             {otherSongs.map((song) => (

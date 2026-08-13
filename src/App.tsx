@@ -290,7 +290,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#030812] text-white flex flex-col font-sans selection:bg-sky-500 selection:text-slate-950">
+    <div className="min-h-screen bg-[#070b17] text-white flex flex-col font-sans selection:bg-indigo-400 selection:text-slate-950">
       {/* Hidden File Input for Sidebar/Header File Imports */}
       <input
         type="file"
@@ -311,7 +311,7 @@ export default function App() {
           onOpenChordModal={handleOpenChordModal}
         />
       ) : (
-        <div className="flex flex-1 min-h-screen">
+        <div className="flex flex-1 min-h-screen bg-[radial-gradient(circle_at_70%_0%,rgba(99,102,241,0.07),transparent_34%)]">
           {/* Categorized Persistent Sidebar */}
           <Sidebar
             songs={songs}

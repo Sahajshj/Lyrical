@@ -95,7 +95,7 @@ export const SongCard: React.FC<SongCardProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 lg:opacity-40 lg:group-hover:opacity-100 transition-opacity">
           <button
             onClick={() => onToggleFavorite(song.id, song.favorite)}
             className={`p-2 rounded-lg transition-colors cursor-pointer ${
@@ -147,7 +147,7 @@ export const SongCard: React.FC<SongCardProps> = ({
   }
 
   return (
-    <div className={`group relative bg-[#181818]/90 hover:bg-[#222222] border border-emerald-500/25 hover:border-emerald-400/50 rounded-2xl p-4.5 flex flex-col justify-between transition-all backdrop-blur-xl shadow-[0_4px_20px_rgba(16,185,129,0.08)] ${song.pinned ? 'border-l-4 border-l-emerald-400' : ''}`}>
+    <div className={`group relative bg-[#101728]/75 hover:bg-[#141d31] border border-white/[0.08] hover:border-indigo-400/35 rounded-2xl p-5 flex flex-col justify-between transition-all backdrop-blur-xl shadow-[0_12px_32px_rgba(0,0,0,0.16)] ${song.pinned ? 'border-l-2 border-l-indigo-400' : ''}`}>
       <div>
         {/* Top Badges & Actions */}
         <div className="flex items-start justify-between gap-2 mb-2.5">
@@ -232,13 +232,13 @@ export const SongCard: React.FC<SongCardProps> = ({
         )}
 
         {/* Lyrics Preview */}
-        <div className="bg-[#121212]/80 rounded-xl p-2.5 border border-emerald-500/15 text-xs text-slate-300 font-sans italic line-clamp-2 mb-3 leading-relaxed">
+        <div className="bg-[#080d19]/65 rounded-xl p-3 border border-white/[0.06] text-xs text-slate-400 font-sans line-clamp-2 mb-4 leading-relaxed">
           {previewText || 'No lyrics preview...'}
         </div>
       </div>
 
       {/* Footer Controls */}
-      <div className="pt-2.5 border-t border-emerald-500/20 flex items-center justify-between gap-2">
+      <div className="pt-3 border-t border-white/[0.07] flex items-center justify-between gap-2">
         <button
           onClick={() => onRead(song)}
           className="flex-1 py-1.5 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-[0_0_15px_rgba(16,185,129,0.35)]"
@@ -325,4 +325,3 @@ function ConfirmDeleteModal({ title, onCancel, onConfirm }: { title: string; onC
     </div>
   );
 }
-

@@ -96,11 +96,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed lg:static top-0 left-0 z-50 h-full lg:h-auto lg:min-h-screen lg:self-stretch w-72 bg-[#121212] border-r border-emerald-500/20 text-white flex flex-col transition-transform duration-300 ease-in-out shrink-0 ${
+        className={`fixed lg:static top-0 left-0 z-50 h-full lg:h-auto lg:min-h-screen lg:self-stretch w-72 lg:w-64 bg-[#0b1020] border-r border-white/[0.07] text-white flex flex-col transition-transform duration-300 ease-in-out shrink-0 ${
           isOpenMobile ? 'translate-x-0 shadow-[0_0_30px_rgba(16,185,129,0.25)]' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        <div className="flex flex-col flex-1 min-h-0 overflow-y-auto p-4 space-y-5 scrollbar-thin scrollbar-thumb-emerald-500/20">
+        <div className="flex flex-col flex-1 min-h-0 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-emerald-500/20">
           {/* Header Brand */}
           <div className="flex items-center justify-between pt-1 pb-3 border-b border-emerald-500/20">
             <div
@@ -119,7 +119,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   Chord<span className="text-emerald-400">Flow</span>
                 </span>
                 <span className="block text-[10px] text-emerald-400/80 uppercase tracking-widest font-semibold">
-                  Spotify Emerald Edition
+                  Your song workspace
                 </span>
               </div>
             </div>
@@ -372,8 +372,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Sidebar Footer info */}
-        <div className="p-3 border-t border-emerald-500/20 bg-[#090909] text-[10px] text-emerald-300/50 flex items-center justify-between">
-          <span>Spotify Emerald Theme</span>
+        <div className="p-3 border-t border-white/[0.06] bg-[#080c18] text-[10px] text-slate-500 flex items-center justify-between">
+          <span>ChordFlow workspace</span>
           <span className="font-mono text-emerald-400/80">v2.5</span>
         </div>
       </aside>

@@ -30,7 +30,7 @@ export const Header: React.FC<HeaderProps> = ({
   isSupabaseConnected,
 }) => {
   return (
-    <header className="sticky top-0 z-30 bg-[#121212]/95 backdrop-blur-xl border-b border-emerald-500/20 px-2.5 sm:px-6 py-2.5 shadow-[0_4px_25px_rgba(16,185,129,0.08)] max-w-full overflow-hidden">
+    <header className="sticky top-0 z-30 bg-[#090e1c]/85 backdrop-blur-xl border-b border-white/[0.07] px-2.5 sm:px-6 py-3 max-w-full overflow-hidden">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-3">
         {/* Left Mobile Menu Toggle & Brand */}
         <div className="flex items-center gap-2 shrink-0">
@@ -44,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div 
             onClick={() => setActiveView('library')} 
-            className="flex items-center gap-2 cursor-pointer group select-none"
+            className="flex lg:hidden items-center gap-2 cursor-pointer group select-none"
           >
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-500 hover:bg-emerald-400 flex items-center justify-center text-slate-950 font-bold group-hover:scale-105 transition-transform shadow-[0_0_18px_rgba(16,185,129,0.4)]">
               <Music className="w-4 h-4 sm:w-5 sm:h-5 text-slate-950 stroke-[2.5]" />
@@ -53,10 +53,12 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="font-extrabold text-sm sm:text-base tracking-tight text-white group-hover:text-emerald-400 transition-colors">
                 Chord<span className="text-emerald-400">Flow</span>
               </span>
-              <span className="text-[9px] text-emerald-400/80 uppercase tracking-widest font-semibold hidden xs:block">
-                Spotify Emerald Edition
-              </span>
+              <span className="text-[9px] text-slate-500 uppercase tracking-widest font-semibold hidden xs:block">Song workspace</span>
             </div>
+          </div>
+          <div className="hidden lg:block">
+            <h1 className="text-sm font-semibold text-slate-100 capitalize">{activeView}</h1>
+            <p className="text-[11px] text-slate-500">Your personal song collection</p>
           </div>
         </div>
 
@@ -84,7 +86,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Database className={`w-3.5 h-3.5 ${isSupabaseConnected ? 'text-emerald-400 animate-pulse' : 'text-emerald-400/60'}`} />
             <span className="hidden md:inline">
-              {isSupabaseConnected ? 'Cloud Active' : 'DB Setup'}
+              {isSupabaseConnected ? 'Synced' : 'Setup'}
             </span>
           </button>
 
@@ -126,4 +128,3 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
-
