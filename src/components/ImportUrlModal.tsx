@@ -51,7 +51,17 @@ export const ImportUrlModal: React.FC<ImportUrlModalProps> = ({
         body: JSON.stringify({ url: url.trim() }),
       });
 
-      const data = await response.json();
+      const responseText = await response.text();
+      let data: any;
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch {
+        throw new Error(
+          response.ok
+            ? 'The import service returned an invalid response.'
+            : `The import service is unavailable (${response.status}). Please check the deployment configuration.`
+        );
+      }
 
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'Failed to extract song data from link.');
