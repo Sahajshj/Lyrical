@@ -103,6 +103,25 @@ function upsertLocalSong(userId: string, song: Song) {
   saveLocalSongs(userId, updated);
 }
 
+function toDatabaseSong(song: Song, userId: string) {
+  return {
+    id: song.id,
+    user_id: userId,
+    title: song.title,
+    artist: song.artist || '',
+    key: song.key || '',
+    bpm: song.bpm ?? null,
+    content: song.content,
+    favorite: song.favorite,
+    pinned: song.pinned,
+    created_at: song.created_at,
+    updated_at: song.updated_at,
+    last_viewed_at: song.last_viewed_at ?? null,
+    tags: song.tags || [],
+    original_chord_sheet_url: song.original_chord_sheet_url ?? null,
+  };
+}
+
 // ================= CRUD FUNCTIONS (SUPABASE WITH LOCAL FALLBACK) ================= //
 
 export async function fetchUserSongs(userId?: string): Promise<{ songs: Song[]; isRemote: boolean }> {
@@ -142,11 +161,39 @@ export async function fetchUserSongs(userId?: string): Promise<{ songs: Song[]; 
           tags: Array.isArray(item.tags) ? item.tags : (typeof item.tags === 'string' ? JSON.parse(item.tags) : []),
           original_chord_sheet_url: item.original_chord_sheet_url || undefined,
         }));
-        // Keep locally queued songs visible until they are next saved remotely.
         const localSongs = getLocalSongs(userId);
-        const remoteIds = new Set(mappedSongs.map((song) => song.id));
+        const remoteById = new Map(mappedSongs.map((song) => [song.id, song]));
+        const pendingSongs = localSongs.filter((localSong) => {
+          const remoteSong = remoteById.get(localSong.id);
+          return !remoteSong || new Date(localSong.updated_at).getTime() > new Date(remoteSong.updated_at).getTime();
+        });
+
+        // Upload work that was saved while the database/network was unavailable.
+        if (pendingSongs.length > 0) {
+          const { error: syncError } = await supabase
+            .from('songs')
+            .upsert(pendingSongs.map((song) => toDatabaseSong(song, userId)));
+
+          if (syncError) {
+            console.warn('Supabase background sync failed:', syncError.message);
+          } else {
+            pendingSongs.forEach((song) => remoteById.set(song.id, song));
+          }
+        }
+
+        // Prefer the newest copy of each song and refresh the offline cache.
+        localSongs.forEach((localSong) => {
+          const remoteSong = remoteById.get(localSong.id);
+          if (!remoteSong || new Date(localSong.updated_at).getTime() > new Date(remoteSong.updated_at).getTime()) {
+            remoteById.set(localSong.id, localSong);
+          }
+        });
+        const reconciledSongs = Array.from(remoteById.values()).sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        saveLocalSongs(userId, reconciledSongs);
         return {
-          songs: [...mappedSongs, ...localSongs.filter((song) => !remoteIds.has(song.id))],
+          songs: reconciledSongs,
           isRemote: true,
         };
       } else if (error) {

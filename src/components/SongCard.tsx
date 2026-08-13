@@ -201,14 +201,18 @@ export const SongCard: React.FC<SongCardProps> = ({
         </div>
 
         {/* Title and Artist */}
-        <div className="cursor-pointer mb-2" onClick={() => onRead(song)}>
-          <h3 className="font-bold text-white text-base tracking-tight group-hover:text-emerald-300 transition-colors line-clamp-1">
-            {song.title}
-          </h3>
-          <p className="text-xs text-emerald-200/70 flex items-center gap-1.5 mt-1">
-            <Music2 className="w-3.5 h-3.5 text-emerald-400/70" />
-            <span>{song.artist || 'Unknown Artist'}</span>
-          </p>
+        <div className="mb-3 flex cursor-pointer items-center gap-3" onClick={() => onRead(song)}>
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-indigo-300/15 bg-gradient-to-br from-indigo-400/25 to-sky-400/10 text-lg font-semibold text-indigo-200 shadow-inner">
+            {song.title.trim().charAt(0).toUpperCase() || <Music2 className="h-5 w-5" />}
+          </div>
+          <div className="min-w-0">
+            <h3 className="line-clamp-1 text-base font-semibold tracking-tight text-white transition-colors group-hover:text-indigo-200">
+              {song.title}
+            </h3>
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-400">
+              <span className="truncate">{song.artist || 'Unknown Artist'}</span>
+            </p>
+          </div>
         </div>
 
         {/* Tags Row */}
@@ -241,10 +245,10 @@ export const SongCard: React.FC<SongCardProps> = ({
       <div className="pt-3 border-t border-white/[0.07] flex items-center justify-between gap-2">
         <button
           onClick={() => onRead(song)}
-          className="flex-1 py-1.5 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-[0_0_15px_rgba(16,185,129,0.35)]"
+          className="flex-1 py-2 px-3 bg-indigo-400 hover:bg-indigo-300 text-slate-950 font-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
         >
           <Play className="w-3.5 h-3.5 fill-slate-950 text-slate-950" />
-          <span>Play & Scroll</span>
+          <span>Open reader</span>
         </button>
 
         <div className="flex items-center gap-1">

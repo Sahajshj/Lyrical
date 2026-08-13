@@ -11,7 +11,7 @@ import { ChordReferenceModal } from './components/ChordReferenceModal';
 import { ImportUrlModal } from './components/ImportUrlModal';
 import { 
   fetchUserSongs, upsertSong, removeSong, 
-  getSupabase, isSupabaseConnected 
+  getSupabase
 } from './lib/supabase';
 import { INITIAL_SONGS } from './data/initialSongs';
 import { 
@@ -28,6 +28,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isCloudSynced, setIsCloudSynced] = useState(false);
 
   // Sidebar mobile drawer state
   const [isSidebarMobileOpen, setIsSidebarMobileOpen] = useState(false);
@@ -82,8 +83,9 @@ export default function App() {
         }
       }
 
-      const { songs: loadedSongs } = await fetchUserSongs(user?.id);
+      const { songs: loadedSongs, isRemote } = await fetchUserSongs(user?.id);
       setSongs(loadedSongs);
+      setIsCloudSynced(isRemote);
       setLoading(false);
     }
 
@@ -93,8 +95,9 @@ export default function App() {
   // Re-fetch songs when user logs in/out
   useEffect(() => {
     async function reloadSongs() {
-      const { songs: reloaded } = await fetchUserSongs(user?.id);
+      const { songs: reloaded, isRemote } = await fetchUserSongs(user?.id);
       setSongs(reloaded);
+      setIsCloudSynced(isRemote);
     }
     reloadSongs();
   }, [user]);
@@ -350,7 +353,7 @@ export default function App() {
               onToggleSidebarMobile={() => setIsSidebarMobileOpen(!isSidebarMobileOpen)}
               user={user}
               onLogout={handleLogout}
-              isSupabaseConnected={isSupabaseConnected()}
+              isSupabaseConnected={isCloudSynced}
             />
 
             <main className="flex-1 overflow-y-auto">

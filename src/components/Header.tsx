@@ -86,7 +86,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Database className={`w-3.5 h-3.5 ${isSupabaseConnected ? 'text-emerald-400 animate-pulse' : 'text-emerald-400/60'}`} />
             <span className="hidden md:inline">
-              {isSupabaseConnected ? 'Synced' : 'Setup'}
+              {isSupabaseConnected ? 'Cloud synced' : 'Local only'}
             </span>
           </button>
 
@@ -117,7 +117,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Create Song Button */}
           <button
             onClick={onNewSong}
-            className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl transition-all shadow-[0_0_18px_rgba(16,185,129,0.35)] cursor-pointer shrink-0"
+            className="flex lg:hidden items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl transition-all cursor-pointer shrink-0"
             title="Create New Song"
           >
             <Plus className="w-4 h-4 stroke-[3]" />

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import { 
   Plus, Heart, Pin, ArrowUpDown, 
   LayoutGrid, List, Upload, Download, Music, Sparkles,
-  CheckCircle2, Smartphone, Link2, Search, X, Tag
+  CheckCircle2, Smartphone, Link2, Search, X, Tag, Library, Headphones, Clock3
 } from 'lucide-react';
 import { Song, SortOption } from '../types';
 import { SongCard } from './SongCard';
@@ -280,6 +280,10 @@ export const SongLibrary: React.FC<SongLibraryProps> = ({
 
   const pinnedSongs = processedSongs.filter((s) => s.pinned);
   const otherSongs = processedSongs.filter((s) => !s.pinned);
+  const favoriteCount = songs.filter((song) => song.favorite).length;
+  const recentlyUpdated = [...songs].sort(
+    (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+  )[0] ?? null;
 
   return (
     <div 
@@ -308,6 +312,61 @@ export const SongLibrary: React.FC<SongLibraryProps> = ({
           <p className="text-xs text-emerald-200/80">PDF files and TXT song sheets will be parsed automatically</p>
         </div>
       )}
+
+      {/* Workspace overview */}
+      <section className="relative overflow-hidden rounded-[28px] border border-white/[0.08] bg-gradient-to-br from-indigo-500/[0.16] via-[#11182a] to-[#0b1020] p-5 sm:p-7">
+        <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-indigo-500/20 blur-3xl" />
+        <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+          <div className="max-w-2xl">
+            <div className="mb-3 flex items-center gap-2 text-xs font-medium text-indigo-300">
+              <Headphones className="h-4 w-4" />
+              <span>Your music workspace</span>
+            </div>
+            <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+              Ready for your next session?
+            </h2>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">
+              Keep every chord sheet close, build your setlist, and open distraction-free reader mode when it is time to play.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2.5">
+              <button
+                onClick={onNewSong}
+                className="inline-flex items-center gap-2 rounded-xl bg-indigo-400 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-indigo-300"
+              >
+                <Plus className="h-4 w-4" /> Create a song
+              </button>
+              <button
+                onClick={() => setIsImportUrlModalOpen(true)}
+                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:bg-white/[0.09]"
+              >
+                <Link2 className="h-4 w-4 text-indigo-300" /> Import from link
+              </button>
+              {recentlyUpdated && (
+                <button
+                  onClick={() => onRead(recentlyUpdated)}
+                  className="inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 transition hover:text-white"
+                >
+                  <Clock3 className="h-4 w-4" /> Continue {recentlyUpdated.title}
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 xl:w-[360px]">
+            {[
+              { label: 'Songs', value: songs.length, icon: Library },
+              { label: 'Favorites', value: favoriteCount, icon: Heart },
+              { label: 'Pinned', value: songs.filter((song) => song.pinned).length, icon: Pin },
+            ].map(({ label, value, icon: Icon }) => (
+              <div key={label} className="rounded-2xl border border-white/[0.07] bg-black/20 p-3 sm:p-4">
+                <Icon className="mb-3 h-4 w-4 text-indigo-300" />
+                <div className="text-xl font-semibold text-white">{value}</div>
+                <div className="text-[11px] text-slate-500">{label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* CONCISE HIGH-EFFICIENCY SEARCH TOOLBAR */}
       <div className="w-full bg-[#101728]/80 border border-white/[0.08] rounded-2xl p-2.5 sm:p-3 backdrop-blur-xl flex flex-col md:flex-row items-center gap-2.5">
