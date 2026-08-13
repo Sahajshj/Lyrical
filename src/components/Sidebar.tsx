@@ -96,11 +96,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed lg:static top-0 left-0 z-50 h-full w-72 bg-[#121212] border-r border-emerald-500/20 text-white flex flex-col justify-between transition-transform duration-300 ease-in-out shrink-0 ${
+        className={`fixed lg:static top-0 left-0 z-50 h-full lg:h-auto lg:min-h-screen lg:self-stretch w-72 bg-[#121212] border-r border-emerald-500/20 text-white flex flex-col transition-transform duration-300 ease-in-out shrink-0 ${
           isOpenMobile ? 'translate-x-0 shadow-[0_0_30px_rgba(16,185,129,0.25)]' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        <div className="flex flex-col h-full overflow-y-auto p-4 space-y-5 scrollbar-thin scrollbar-thumb-emerald-500/20">
+        <div className="flex flex-col flex-1 min-h-0 overflow-y-auto p-4 space-y-5 scrollbar-thin scrollbar-thumb-emerald-500/20">
           {/* Header Brand */}
           <div className="flex items-center justify-between pt-1 pb-3 border-b border-emerald-500/20">
             <div
