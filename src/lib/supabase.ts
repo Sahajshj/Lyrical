@@ -6,6 +6,8 @@ import { INITIAL_SONGS } from '../data/initialSongs';
 const SUPABASE_URL_KEY = 'chordflow_supabase_url';
 const SUPABASE_KEY_KEY = 'chordflow_supabase_key';
 const LOCAL_SONGS_KEY = 'chordflow_user_songs_v1';
+const PENDING_SONGS_KEY = 'chordflow_pending_song_ids_v1';
+const PENDING_DELETES_KEY = 'chordflow_pending_delete_ids_v1';
 
 let supabaseClient: SupabaseClient | null = null;
 
@@ -94,13 +96,37 @@ function saveLocalSongs(userId: string, songs: Song[]) {
   }
 }
 
-function upsertLocalSong(userId: string, song: Song) {
+function getPendingIds(storageKey: string, userId: string): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const value = JSON.parse(localStorage.getItem(`${storageKey}:${userId}`) || '[]');
+    return new Set(Array.isArray(value) ? value : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function savePendingIds(storageKey: string, userId: string, ids: Set<string>) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(`${storageKey}:${userId}`, JSON.stringify(Array.from(ids)));
+  }
+}
+
+function setPendingId(storageKey: string, userId: string, id: string, pending: boolean) {
+  const ids = getPendingIds(storageKey, userId);
+  if (pending) ids.add(id);
+  else ids.delete(id);
+  savePendingIds(storageKey, userId, ids);
+}
+
+function upsertLocalSong(userId: string, song: Song, pending: boolean) {
   const current = getLocalSongs(userId);
   const index = current.findIndex((item) => item.id === song.id);
   const updated = [...current];
   if (index >= 0) updated[index] = song;
   else updated.unshift(song);
   saveLocalSongs(userId, updated);
+  setPendingId(PENDING_SONGS_KEY, userId, song.id, pending);
 }
 
 function toDatabaseSong(song: Song, userId: string) {
@@ -163,10 +189,24 @@ export async function fetchUserSongs(userId?: string): Promise<{ songs: Song[]; 
         }));
         const localSongs = getLocalSongs(userId);
         const remoteById = new Map(mappedSongs.map((song) => [song.id, song]));
+        const pendingIds = getPendingIds(PENDING_SONGS_KEY, userId);
+        const pendingDeleteIds = getPendingIds(PENDING_DELETES_KEY, userId);
         const pendingSongs = localSongs.filter((localSong) => {
+          if (!pendingIds.has(localSong.id)) return false;
           const remoteSong = remoteById.get(localSong.id);
           return !remoteSong || new Date(localSong.updated_at).getTime() > new Date(remoteSong.updated_at).getTime();
         });
+
+        if (pendingDeleteIds.size > 0) {
+          const deleteIds = Array.from(pendingDeleteIds);
+          const { error: deleteError } = await supabase
+            .from('songs')
+            .delete()
+            .eq('user_id', userId)
+            .in('id', deleteIds);
+          if (!deleteError) savePendingIds(PENDING_DELETES_KEY, userId, new Set());
+          deleteIds.forEach((id) => remoteById.delete(id));
+        }
 
         // Upload work that was saved while the database/network was unavailable.
         if (pendingSongs.length > 0) {
@@ -177,12 +217,21 @@ export async function fetchUserSongs(userId?: string): Promise<{ songs: Song[]; 
           if (syncError) {
             console.warn('Supabase background sync failed:', syncError.message);
           } else {
-            pendingSongs.forEach((song) => remoteById.set(song.id, song));
+            pendingSongs.forEach((song) => {
+              remoteById.set(song.id, song);
+              pendingIds.delete(song.id);
+            });
           }
         }
+        // A newer remote version resolves any stale local pending marker.
+        pendingIds.forEach((id) => {
+          if (!pendingSongs.some((song) => song.id === id)) pendingIds.delete(id);
+        });
+        savePendingIds(PENDING_SONGS_KEY, userId, pendingIds);
 
-        // Prefer the newest copy of each song and refresh the offline cache.
+        // Only genuine unsynced edits may override the remote collection.
         localSongs.forEach((localSong) => {
+          if (!pendingIds.has(localSong.id)) return;
           const remoteSong = remoteById.get(localSong.id);
           if (!remoteSong || new Date(localSong.updated_at).getTime() > new Date(remoteSong.updated_at).getTime()) {
             remoteById.set(localSong.id, localSong);
@@ -259,7 +308,7 @@ export async function upsertSong(songData: Partial<Song>, userId?: string): Prom
           ...songToSave,
           id: data.id,
         };
-        upsertLocalSong(userId, savedSong);
+        upsertLocalSong(userId, savedSong, false);
         return savedSong;
       } else if (error) {
         console.warn('Supabase upsert error (saving locally):', error.message);
@@ -271,7 +320,7 @@ export async function upsertSong(songData: Partial<Song>, userId?: string): Prom
 
   // Preserve the user's work when cloud storage is unavailable. The cache is
   // private to this signed-in account on this browser.
-  upsertLocalSong(userId, songToSave);
+  upsertLocalSong(userId, songToSave, true);
   return songToSave;
 }
 
@@ -279,6 +328,7 @@ export async function removeSong(id: string, userId?: string): Promise<boolean> 
   if (!userId) return false;
 
   const supabase = getSupabase();
+  let deletedRemotely = false;
 
   if (supabase) {
     try {
@@ -287,6 +337,8 @@ export async function removeSong(id: string, userId?: string): Promise<boolean> 
       const { error } = await query;
       if (error) {
         console.warn('Supabase delete error:', error.message);
+      } else {
+        deletedRemotely = true;
       }
     } catch (err) {
       console.warn('Supabase delete failed:', err);
@@ -294,6 +346,8 @@ export async function removeSong(id: string, userId?: string): Promise<boolean> 
   }
 
   saveLocalSongs(userId, getLocalSongs(userId).filter((song) => song.id !== id));
+  setPendingId(PENDING_SONGS_KEY, userId, id, false);
+  setPendingId(PENDING_DELETES_KEY, userId, id, !deletedRemotely);
 
   return true;
 }

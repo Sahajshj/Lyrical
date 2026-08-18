@@ -116,10 +116,14 @@ export default function App() {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') refreshFromCloud();
     };
+    const refreshInterval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') refreshFromCloud();
+    }, 30_000);
 
     window.addEventListener('focus', refreshFromCloud);
     document.addEventListener('visibilitychange', handleVisibility);
     return () => {
+      window.clearInterval(refreshInterval);
       window.removeEventListener('focus', refreshFromCloud);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
