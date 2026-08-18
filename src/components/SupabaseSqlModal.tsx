@@ -24,6 +24,12 @@ create table if not exists public.songs (
   original_chord_sheet_url text
 );
 
+-- Bring older/partial installations up to date
+alter table public.songs add column if not exists user_id uuid references auth.users(id) on delete cascade default auth.uid();
+alter table public.songs add column if not exists tags text[] default '{}';
+alter table public.songs add column if not exists original_chord_sheet_url text;
+alter table public.songs add column if not exists last_viewed_at timestamp with time zone;
+
 -- Enable Row Level Security (RLS)
 alter table public.songs enable row level security;
 
@@ -40,12 +46,16 @@ create policy "Users can insert own songs" on public.songs
 -- Policy: Users can update their own songs
 drop policy if exists "Users can update own songs" on public.songs;
 create policy "Users can update own songs" on public.songs
-  for update using (auth.uid() = user_id);
+  for update using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 -- Policy: Users can delete their own songs
 drop policy if exists "Users can delete own songs" on public.songs;
 create policy "Users can delete own songs" on public.songs
   for delete using (auth.uid() = user_id);
+
+-- Explicit API privileges (RLS policies still protect every user's rows)
+grant select, insert, update, delete on public.songs to authenticated;
 `;
 
 export const SupabaseSqlModal: React.FC<SupabaseSqlModalProps> = ({ isOpen, onClose }) => {

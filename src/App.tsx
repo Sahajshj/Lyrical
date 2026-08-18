@@ -20,6 +20,7 @@ import {
   parseMultiSongBackupTxt,
   parsePdfFileToSong
 } from './utils/fileUtils';
+import { CloudOff, Database } from 'lucide-react';
 
 export default function App() {
   const [activeView, setActiveView] = useState<ViewMode>('library');
@@ -100,6 +101,28 @@ export default function App() {
       setIsCloudSynced(isRemote);
     }
     reloadSongs();
+  }, [user]);
+
+  // Reconcile with the cloud when a user returns after using another device
+  // or after completing the one-time Supabase database setup.
+  useEffect(() => {
+    if (!user) return;
+
+    const refreshFromCloud = async () => {
+      const { songs: reloaded, isRemote } = await fetchUserSongs(user.id);
+      setSongs(reloaded);
+      setIsCloudSynced(isRemote);
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') refreshFromCloud();
+    };
+
+    window.addEventListener('focus', refreshFromCloud);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      window.removeEventListener('focus', refreshFromCloud);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [user]);
 
   // CRUD Handlers
@@ -357,6 +380,27 @@ export default function App() {
             />
 
             <main className="flex-1 overflow-y-auto">
+              {user && !isCloudSynced && !loading && (
+                <div className="mx-4 mt-4 flex flex-col gap-3 rounded-2xl border border-amber-400/25 bg-amber-400/[0.08] p-4 sm:mx-8 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-xl bg-amber-400/10 p-2 text-amber-300">
+                      <CloudOff className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-amber-100">Songs are stored on this device only</p>
+                      <p className="mt-0.5 text-xs leading-5 text-amber-100/60">
+                        Create the Supabase songs table to sync this library across your phone and desktop.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsSqlModalOpen(true)}
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-amber-300 px-3.5 py-2 text-xs font-semibold text-amber-950 transition hover:bg-amber-200"
+                  >
+                    <Database className="h-4 w-4" /> Fix cloud sync
+                  </button>
+                </div>
+              )}
               {loading ? (
                 <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-sky-400">
                   <div className="w-10 h-10 border-4 border-sky-500/30 border-t-sky-400 rounded-full animate-spin" />
